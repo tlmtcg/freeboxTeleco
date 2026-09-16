@@ -1,7 +1,21 @@
 import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:freebox_teleco/podcast/podcast_page.dart';
+
+import 'podcast/api/podcast_api.dart';
 
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
+
+import 'podcast/database/podcast_database.dart';
+import 'podcast/models/podcast_radio.dart';
+import 'podcast/repository/podcast_repository.dart';
+
+import 'podcast/models/podcast.dart';
+
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'core/freebox_player.dart';
 import 'discovery/freebox_discovery.dart';
@@ -10,7 +24,7 @@ import 'rudp/rudp_client.dart';
 import 'hid/hid_client.dart';
 
 import 'freebox_os.dart';
-import 'channels_page.dart';
+import 'tv/channels_page.dart';
 import 'rudp/rudp_client.dart';
 import 'rudp/rudp_packet.dart';
 
@@ -19,12 +33,259 @@ import 'remote/remote_pop.dart';
 import 'remote/remote_delta.dart';
 import 'remote/remote_revolution.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  MediaKit.ensureInitialized();
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 
-  runApp(const FreeboxRemoteApp());
+  // ============================================================
+  // ENVIRONNEMENT
+  // ============================================================
+
+  await dotenv.load(fileName: '.env');
+
+  final apiKey = dotenv.env['PODCAST_INDEX_API_KEY'];
+  final apiSecret = dotenv.env['PODCAST_INDEX_API_SECRET'];
+
+  if (apiKey == null || apiKey.isEmpty) {
+    debugPrint('ERREUR : PODCAST_INDEX_API_KEY absente');
+    return;
+  }
+
+  if (apiSecret == null || apiSecret.isEmpty) {
+    debugPrint('ERREUR : PODCAST_INDEX_API_SECRET absente');
+    return;
+  }
+
+  // debugPrint('========================================');
+  // debugPrint('       CONFIGURATION PODCAST INDEX');
+  // debugPrint('========================================');
+  // debugPrint('API key présente    : true');
+  // debugPrint('API secret présent  : true');
+  // debugPrint('========================================');
+
+  // ============================================================
+  // SERVICES
+  // ============================================================
+
+  final podcastApi = PodcastApi(apiKey: apiKey, apiSecret: apiSecret);
+
+  final podcastDatabase = PodcastDatabase.instance;
+
+  final repository = PodcastRepository(
+    api: podcastApi,
+    database: podcastDatabase,
+  );
+
+  // Cette variable doit rester accessible après le try
+  // afin de pouvoir lancer PodcastTestApp.
+  PodcastRadio? franceInter;
+
+  // ============================================================
+  // TEST
+  // ============================================================
+
+  try {
+    // debugPrint('');
+    // debugPrint('========================================');
+    // debugPrint('       TEST PODCAST REPOSITORY');
+    // debugPrint('========================================');
+
+    // ----------------------------------------------------------
+    // 1. Création / récupération de la radio
+    // ----------------------------------------------------------
+
+    // debugPrint('');
+    // debugPrint('--- RADIO ---');
+
+    const radio = PodcastRadio(
+      name: 'France Inter',
+      searchTerm: 'France Inter',
+    );
+
+    final radios = await repository.getRadios();
+
+    for (final item in radios) {
+      if (item.name == radio.name) {
+        franceInter = item;
+        break;
+      }
+    }
+
+    if (franceInter == null) {
+      final radioId = await repository.addRadio(radio);
+
+      if (radioId == 0) {
+        throw Exception('Impossible de créer la radio France Inter.');
+      }
+
+      franceInter = radio.copyWith(id: radioId);
+
+      // debugPrint('Radio créée : ${franceInter!.name}');
+
+      // debugPrint('ID SQLite   : ${franceInter!.id}');
+    } else {
+      // debugPrint('Radio existante : ${franceInter!.name}');
+
+      // debugPrint('ID SQLite       : ${franceInter!.id}');
+    }
+
+    // ----------------------------------------------------------
+    // Vérification de sécurité
+    // ----------------------------------------------------------
+
+    if (franceInter == null) {
+      throw Exception('Impossible de récupérer la radio France Inter.');
+    }
+
+    if (franceInter!.id == null) {
+      throw Exception('La radio France Inter ne possède pas d\'ID SQLite.');
+    }
+
+    // ----------------------------------------------------------
+    // 2. Synchronisation Podcast Index → SQLite
+    // ----------------------------------------------------------
+
+    // debugPrint('');
+    // debugPrint('--- SYNCHRONISATION ---');
+
+    final synchronizedCount = await repository.synchronizeRadio(
+      franceInter!,
+      maxPodcasts: 10,
+    );
+
+    // debugPrint('Podcasts synchronisés : $synchronizedCount');
+
+    // ----------------------------------------------------------
+    // 3. Lecture depuis SQLite
+    // ----------------------------------------------------------
+
+    // debugPrint('');
+    // debugPrint('--- LECTURE SQLITE ---');
+
+    final podcasts = await repository.getPodcastsForRadio(franceInter!.id!);
+
+    // debugPrint('Nombre de podcasts en SQLite : ${podcasts.length}');
+
+    // debugPrint('');
+
+    for (final podcast in podcasts) {
+      debugPrint(
+        '${podcast.id} | '
+        '${podcast.podcastIndexId} | '
+        '${podcast.title}',
+      );
+    }
+
+    // ----------------------------------------------------------
+    // 4. Test des épisodes
+    // ----------------------------------------------------------
+
+    if (podcasts.isNotEmpty) {
+      const testPodcastIndexId = 1387907;
+
+      Podcast? podcast;
+
+      for (final item in podcasts) {
+        if (item.podcastIndexId == testPodcastIndexId) {
+          podcast = item;
+          break;
+        }
+      }
+
+      if (podcast == null) {
+        throw Exception(
+          'Podcast Index ID '
+          '$testPodcastIndexId '
+          'introuvable dans SQLite.',
+        );
+      }
+
+      if (podcast.id == null) {
+        throw Exception('Le podcast ne possède pas d\'ID SQLite.');
+      }
+
+      if (podcast.podcastIndexId == null) {
+        throw Exception('Le podcast ne possède pas de Podcast Index ID.');
+      }
+
+      // debugPrint('');
+      // debugPrint('--- TEST EPISODES ---');
+
+      // debugPrint('Podcast : ${podcast.title}');
+
+      // debugPrint('SQLite ID : ${podcast.id}');
+
+      // debugPrint('Podcast Index ID : ${podcast.podcastIndexId}');
+
+      // --------------------------------------------------------
+      // 4.1 Podcast Index → épisodes
+      // --------------------------------------------------------
+
+      await repository.synchronizeEpisodes(podcast, maxEpisodes: 10);
+
+      // --------------------------------------------------------
+      // 4.2 Lecture des épisodes depuis SQLite
+      // --------------------------------------------------------
+
+      final episodes = await repository.getEpisodes(podcast.id!, limit: 10);
+
+      // debugPrint(
+      //   'Nombre d\'épisodes en SQLite : '
+      //   '${episodes.length}',
+      // );
+
+      // debugPrint('');
+
+      for (final episode in episodes) {
+        // debugPrint('${episode.id} | ${episode.title}');
+      }
+    } else {
+      // debugPrint('');
+      // debugPrint('Aucun podcast disponible pour tester les épisodes.');
+    }
+
+    // ==========================================================
+    // FIN DU TEST
+    // ==========================================================
+
+    // debugPrint('');
+    // debugPrint('========================================');
+    // debugPrint('             TEST TERMINE');
+    // debugPrint('========================================');
+  } catch (e, stackTrace) {
+    // ==========================================================
+    // ERREUR
+    // ==========================================================
+
+    debugPrint('');
+    debugPrint('========================================');
+    debugPrint('          ERREUR PODCAST');
+    debugPrint('========================================');
+
+    debugPrint('$e');
+
+    debugPrint('');
+    debugPrint('$stackTrace');
+
+    debugPrint('========================================');
+  }
+
+  // ============================================================
+  // APPLICATION
+  // ============================================================
+
+  if (franceInter != null) {
+    runApp(PodcastTestApp(repository: repository, radio: franceInter!));
+  } else {
+    debugPrint(
+      'Impossible de lancer PodcastPage : '
+      'France Inter indisponible.',
+    );
+  }
 }
 
 class AppConfig {
@@ -73,8 +334,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
   bool _isConnected = false;
   bool _isCheckingConnection = true;
 
-  String _connectionMessage =
-      'Recherche de la Freebox sur le réseau local...';
+  String _connectionMessage = 'Recherche de la Freebox sur le réseau local...';
 
   // ============================================================
   // FREEBOX OS
@@ -114,8 +374,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
     setState(() {
       _isCheckingConnection = true;
       _isConnected = false;
-      _connectionMessage =
-          'Recherche du Player Delta sur le réseau local...';
+      _connectionMessage = 'Recherche du Player Delta sur le réseau local...';
     });
 
     try {
@@ -155,10 +414,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
       // RUDP
       // ----------------------------------------------------------
 
-      final rudp = RudpClient(
-        player: player,
-        socket: socket,
-      );
+      final rudp = RudpClient(player: player, socket: socket);
 
       // ----------------------------------------------------------
       // HID
@@ -227,9 +483,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
         reliableSequence = 1;
       }
 
-      await rudp.sendConnectionRequest(
-        reliableSequence: reliableSequence,
-      );
+      await rudp.sendConnectionRequest(reliableSequence: reliableSequence);
 
       // ----------------------------------------------------------
       // ATTENTE CONN_RSP
@@ -241,9 +495,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
       );
 
       if (!connected) {
-        throw StateError(
-          'Timeout ou refus de la connexion RUDP.',
-        );
+        throw StateError('Timeout ou refus de la connexion RUDP.');
       }
 
       debugPrint('RUDP connecté.');
@@ -329,9 +581,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
         return true;
       }
 
-      await Future<void>.delayed(
-        const Duration(milliseconds: 50),
-      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
     }
 
     return rudp.isConnected;
@@ -352,9 +602,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
         return true;
       }
 
-      await Future<void>.delayed(
-        const Duration(milliseconds: 50),
-      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
     }
 
     return hid.isReady;
@@ -492,10 +740,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
               children: [
                 const Text(
                   'Télécommande Freebox',
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
                 ),
 
                 const SizedBox(height: 2),
@@ -515,21 +760,15 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
 
           IconButton(
             tooltip: 'Changer de Freebox',
-            onPressed: _isCheckingConnection
-                ? null
-                : _connectPlayer,
+            onPressed: _isCheckingConnection ? null : _connectPlayer,
             icon: _isCheckingConnection
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Icon(
-                    _isConnected
-                        ? Icons.wifi_rounded
-                        : Icons.wifi_off_rounded,
+                    _isConnected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
                   ),
             color: _isConnected
                 ? const Color(0xFF73E0B1)
@@ -553,28 +792,16 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
 
     switch (appConfig.remoteType) {
       case 'delta':
-        return RemoteDelta(
-          client: hid,
-          send: _sendCommand,
-        );
+        return RemoteDelta(client: hid, send: _sendCommand);
 
       case 'pop':
-        return RemotePop(
-          client: hid,
-          send: _sendCommand,
-        );
+        return RemotePop(client: hid, send: _sendCommand);
 
       case 'revolution':
-        return RemoteRevolution(
-          client: hid,
-          send: _sendCommand,
-        );
+        return RemoteRevolution(client: hid, send: _sendCommand);
 
       default:
-        return RemoteDelta(
-          client: hid,
-          send: _sendCommand,
-        );
+        return RemoteDelta(client: hid, send: _sendCommand);
     }
   }
 
@@ -589,10 +816,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
       return _buildConnectionPlaceholder();
     }
 
-    return ChannelsPage(
-      freebox: freebox,
-      player: hid,
-    );
+    return ChannelsPage(freebox: freebox, player: hid);
   }
 
   // ============================================================
@@ -621,10 +845,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
                   ? 'Connexion au Player Delta...'
                   : 'Player Delta non connecté',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
             ),
 
             const SizedBox(height: 10),
@@ -632,9 +853,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
             Text(
               _connectionMessage,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF81899B),
-              ),
+              style: const TextStyle(color: Color(0xFF81899B)),
             ),
 
             const SizedBox(height: 24),
@@ -663,20 +882,14 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
         children: [
           const Text(
             'Réglages',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700),
           ),
 
           const SizedBox(height: 30),
 
           const Text(
             'Choisir la télécommande',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
 
           const SizedBox(height: 12),
@@ -684,19 +897,10 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
           DropdownButton<String>(
             value: appConfig.remoteType,
             dropdownColor: const Color(0xFF1A2233),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-            ),
+            style: const TextStyle(color: Colors.white, fontSize: 18),
             items: const [
-              DropdownMenuItem(
-                value: 'delta',
-                child: Text('Freebox Delta'),
-              ),
-              DropdownMenuItem(
-                value: 'pop',
-                child: Text('Freebox Pop'),
-              ),
+              DropdownMenuItem(value: 'delta', child: Text('Freebox Delta')),
+              DropdownMenuItem(value: 'pop', child: Text('Freebox Pop')),
               DropdownMenuItem(
                 value: 'revolution',
                 child: Text('Freebox Révolution'),
@@ -720,9 +924,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
   // ============================================================
 
   Widget _buildAppsPage() {
-    return const Center(
-      child: Text('Vide'),
-    );
+    return const Center(child: Text('Vide'));
   }
 
   // ============================================================
@@ -771,3 +973,27 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
   }
 }
 
+class PodcastTestApp extends StatelessWidget {
+  final PodcastRepository repository;
+  final PodcastRadio radio;
+
+  const PodcastTestApp({
+    super.key,
+    required this.repository,
+    required this.radio,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Podcasts',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        colorSchemeSeed: const Color(0xFF5B8CFF),
+        useMaterial3: true,
+      ),
+      home: PodcastPage(repository: repository, radio: radio),
+    );
+  }
+}

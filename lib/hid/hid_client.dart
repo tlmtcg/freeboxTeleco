@@ -59,39 +59,27 @@ class HidClient {
   // ============================================================
 
   bool get isReady {
-    return _isRegistered &&
-        keyboardGrabbed &&
-        consumerGrabbed;
+    return _isRegistered && keyboardGrabbed && consumerGrabbed;
   }
 
   bool get unicodeGrabbed {
-    return _grabbedReportIds.contains(
-      HidCommands.reportUnicode,
-    );
+    return _grabbedReportIds.contains(HidCommands.reportUnicode);
   }
 
   bool get keyboardGrabbed {
-    return _grabbedReportIds.contains(
-      HidCommands.reportKeyboard,
-    );
+    return _grabbedReportIds.contains(HidCommands.reportKeyboard);
   }
 
   bool get consumerGrabbed {
-    return _grabbedReportIds.contains(
-      HidCommands.reportConsumer,
-    );
+    return _grabbedReportIds.contains(HidCommands.reportConsumer);
   }
 
   bool get desktopGrabbed {
-    return _grabbedReportIds.contains(
-      HidCommands.reportDesktop,
-    );
+    return _grabbedReportIds.contains(HidCommands.reportDesktop);
   }
 
   Set<int> get grabbedReportIds {
-    return Set<int>.unmodifiable(
-      _grabbedReportIds,
-    );
+    return Set<int>.unmodifiable(_grabbedReportIds);
   }
 
   // ============================================================
@@ -142,11 +130,7 @@ class HidClient {
 
     print('========================================');
 
-    await _sendHidCommand(
-      HidCommands.deviceNew,
-      payload,
-      reliable: true,
-    );
+    await _sendHidCommand(HidCommands.deviceNew, payload, reliable: true);
 
     print('');
     print('========================================');
@@ -166,15 +150,9 @@ class HidClient {
   Future<void> sendDeviceDropped() async {
     _checkConnected();
 
-    final payload = HidDeviceDropped.build(
-      deviceId: deviceId,
-    );
+    final payload = HidDeviceDropped.build(deviceId: deviceId);
 
-    await _sendHidCommand(
-      HidCommands.deviceDropped,
-      payload,
-      reliable: true,
-    );
+    await _sendHidCommand(HidCommands.deviceDropped, payload, reliable: true);
 
     reset();
   }
@@ -194,10 +172,7 @@ class HidClient {
   // Bidirectionnel
   // ============================================================
 
-  Future<void> sendFeature(
-    int reportId,
-    List<int> data,
-  ) async {
+  Future<void> sendFeature(int reportId, List<int> data) async {
     _checkHidReadyForReport(reportId);
 
     final payload = HidFeature.build(
@@ -206,11 +181,7 @@ class HidClient {
       data: data,
     );
 
-    await _sendHidCommand(
-      HidCommands.deviceFeature,
-      payload,
-      reliable: true,
-    );
+    await _sendHidCommand(HidCommands.deviceFeature, payload, reliable: true);
   }
 
   // ============================================================
@@ -301,8 +272,7 @@ class HidClient {
 
   void _processDeviceDropped(RudpPacket packet) {
     try {
-      final receivedDeviceId =
-          HidDeviceDropped.readDeviceId(packet.payload);
+      final receivedDeviceId = HidDeviceDropped.readDeviceId(packet.payload);
 
       print('');
       print('========================================');
@@ -345,15 +315,9 @@ class HidClient {
       return;
     }
 
-    final receivedDeviceId = HidCodec.readU32(
-      packet.payload,
-      0,
-    );
+    final receivedDeviceId = HidCodec.readU32(packet.payload, 0);
 
-    final receivedValue = HidCodec.readU32(
-      packet.payload,
-      4,
-    );
+    final receivedValue = HidCodec.readU32(packet.payload, 4);
 
     print('');
     print('========================================');
@@ -392,8 +356,7 @@ class HidClient {
 
   void _processDeviceClose(RudpPacket packet) {
     try {
-      final receivedDeviceId =
-          HidDeviceClose.readDeviceId(packet.payload);
+      final receivedDeviceId = HidDeviceClose.readDeviceId(packet.payload);
 
       print('');
       print('========================================');
@@ -427,11 +390,9 @@ class HidClient {
 
   void _processFeature(RudpPacket packet) {
     try {
-      final receivedDeviceId =
-          HidFeature.readDeviceId(packet.payload);
+      final receivedDeviceId = HidFeature.readDeviceId(packet.payload);
 
-      final reportId =
-          HidFeature.readReportId(packet.payload);
+      final reportId = HidFeature.readReportId(packet.payload);
 
       if (receivedDeviceId != deviceId) {
         print(
@@ -441,8 +402,7 @@ class HidClient {
         return;
       }
 
-      final data =
-          HidFeature.readData(packet.payload);
+      final data = HidFeature.readData(packet.payload);
 
       print('');
       print('========================================');
@@ -466,11 +426,9 @@ class HidClient {
 
   void _processData(RudpPacket packet) {
     try {
-      final receivedDeviceId =
-          HidData.readDeviceId(packet.payload);
+      final receivedDeviceId = HidData.readDeviceId(packet.payload);
 
-      final reportId =
-          HidData.readReportId(packet.payload);
+      final reportId = HidData.readReportId(packet.payload);
 
       if (receivedDeviceId != deviceId) {
         print(
@@ -480,8 +438,7 @@ class HidClient {
         return;
       }
 
-      final report =
-          HidData.readData(packet.payload);
+      final report = HidData.readData(packet.payload);
 
       print('');
       print('========================================');
@@ -504,11 +461,9 @@ class HidClient {
 
   void _processGrab(RudpPacket packet) {
     try {
-      final receivedDeviceId =
-          HidGrab.readDeviceId(packet.payload);
+      final receivedDeviceId = HidGrab.readDeviceId(packet.payload);
 
-      final reportId =
-          HidGrab.readReportId(packet.payload);
+      final reportId = HidGrab.readReportId(packet.payload);
 
       print('');
       print('========================================');
@@ -542,8 +497,7 @@ class HidClient {
         '$reportId',
       );
 
-      final reports =
-          _grabbedReportIds.toList()..sort();
+      final reports = _grabbedReportIds.toList()..sort();
 
       print(
         'Reports HID reçus : '
@@ -573,11 +527,9 @@ class HidClient {
 
   void _processRelease(RudpPacket packet) {
     try {
-      final receivedDeviceId =
-          HidRelease.readDeviceId(packet.payload);
+      final receivedDeviceId = HidRelease.readDeviceId(packet.payload);
 
-      final reportId =
-          HidRelease.readReportId(packet.payload);
+      final reportId = HidRelease.readReportId(packet.payload);
 
       if (receivedDeviceId != deviceId) {
         print(
@@ -609,11 +561,9 @@ class HidClient {
 
   void _processSolicit(RudpPacket packet) {
     try {
-      final receivedDeviceId =
-          HidSolicit.readDeviceId(packet.payload);
+      final receivedDeviceId = HidSolicit.readDeviceId(packet.payload);
 
-      final reportId =
-          HidSolicit.readReportId(packet.payload);
+      final reportId = HidSolicit.readReportId(packet.payload);
 
       if (receivedDeviceId != deviceId) {
         print(
@@ -641,10 +591,7 @@ class HidClient {
   // Client -> Player
   // ============================================================
 
-  Future<void> _sendData(
-    int reportId,
-    List<int> report,
-  ) async {
+  Future<void> _sendData(int reportId, List<int> report) async {
     _checkConnected();
 
     if (!_isRegistered) {
@@ -654,16 +601,19 @@ class HidClient {
     _validateReportId(reportId);
 
     if (!_grabbedReportIds.contains(reportId)) {
-      throw StateError(
-        'Report HID $reportId non disponible.',
-      );
+      throw StateError('Report HID $reportId non disponible.');
     }
 
-    if (report.length != 2) {
-      throw ArgumentError(
-        'Un report HID doit contenir '
-        'exactement 2 octets.',
-      );
+    if (reportId == HidCommands.reportDesktop) {
+      if (report.length != 1) {
+        throw ArgumentError(
+          'Un report Desktop HID doit contenir exactement 1 octet.',
+        );
+      }
+    } else {
+      if (report.length != 2) {
+        throw ArgumentError('Un report HID doit contenir exactement 2 octets.');
+      }
     }
 
     final payload = HidData.build(
@@ -672,11 +622,7 @@ class HidClient {
       data: report,
     );
 
-    await _sendHidCommand(
-      HidCommands.deviceData,
-      payload,
-      reliable: true,
-    );
+    await _sendHidCommand(HidCommands.deviceData, payload, reliable: true);
   }
 
   // ============================================================
@@ -684,27 +630,13 @@ class HidClient {
   // ============================================================
 
   Future<void> sendKeyboard(int keyCode) async {
-    final report = <int>[
-      keyCode & 0xFF,
-      0x00,
-    ];
+    final report = <int>[keyCode & 0xFF, 0x00];
 
-    await _sendData(
-      HidCommands.reportKeyboard,
-      report,
-    );
+    await _sendData(HidCommands.reportKeyboard, report);
 
-    await Future<void>.delayed(
-      const Duration(milliseconds: 100),
-    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
 
-    await _sendData(
-      HidCommands.reportKeyboard,
-      const <int>[
-        0x00,
-        0x00,
-      ],
-    );
+    await _sendData(HidCommands.reportKeyboard, const <int>[0x00, 0x00]);
   }
 
   // ============================================================
@@ -716,28 +648,13 @@ class HidClient {
 
     final data = ByteData.sublistView(report);
 
-    data.setUint16(
-      0,
-      usage,
-      Endian.little,
-    );
+    data.setUint16(0, usage, Endian.little);
 
-    await _sendData(
-      HidCommands.reportConsumer,
-      report,
-    );
+    await _sendData(HidCommands.reportConsumer, report);
 
-    await Future<void>.delayed(
-      const Duration(milliseconds: 100),
-    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
 
-    await _sendData(
-      HidCommands.reportConsumer,
-      const <int>[
-        0x00,
-        0x00,
-      ],
-    );
+    await _sendData(HidCommands.reportConsumer, const <int>[0x00, 0x00]);
   }
 
   // ============================================================
@@ -745,32 +662,15 @@ class HidClient {
   // ============================================================
 
   Future<void> sendDesktop(int usage) async {
-    final report = Uint8List(2);
+    final report = Uint8List(1);
 
-    final data = ByteData.sublistView(report);
+    report[0] = usage & 0xFF;
 
-    data.setUint16(
-      0,
-      usage,
-      Endian.little,
-    );
+    await _sendData(HidCommands.reportDesktop, report);
 
-    await _sendData(
-      HidCommands.reportDesktop,
-      report,
-    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
 
-    await Future<void>.delayed(
-      const Duration(milliseconds: 100),
-    );
-
-    await _sendData(
-      HidCommands.reportDesktop,
-      const <int>[
-        0x00,
-        0x00,
-      ],
-    );
+    await _sendData(HidCommands.reportDesktop, const <int>[0x00]);
   }
 
   // ============================================================
@@ -806,11 +706,7 @@ class HidClient {
 
     print('========================================');
 
-    await rudp.sendApp(
-      command,
-      payload,
-      reliable: reliable,
-    );
+    await rudp.sendApp(command, payload, reliable: reliable);
   }
 
   // ============================================================
@@ -856,39 +752,27 @@ class HidClient {
 
   void _checkConnected() {
     if (!rudp.isConnected) {
-      throw StateError(
-        'RUDP non connecté.',
-      );
+      throw StateError('RUDP non connecté.');
     }
   }
 
-  void _checkHidReadyForReport(
-    int reportId,
-  ) {
+  void _checkHidReadyForReport(int reportId) {
     _checkConnected();
 
     if (!_isRegistered) {
-      throw StateError(
-        'HID non enregistré.',
-      );
+      throw StateError('HID non enregistré.');
     }
 
     _validateReportId(reportId);
 
     if (!_grabbedReportIds.contains(reportId)) {
-      throw StateError(
-        'Report HID $reportId non disponible.',
-      );
+      throw StateError('Report HID $reportId non disponible.');
     }
   }
 
-  static void _validateReportId(
-    int reportId,
-  ) {
+  static void _validateReportId(int reportId) {
     if (!HidCommands.isValidReportId(reportId)) {
-      throw ArgumentError(
-        'Report HID invalide : $reportId',
-      );
+      throw ArgumentError('Report HID invalide : $reportId');
     }
   }
 }

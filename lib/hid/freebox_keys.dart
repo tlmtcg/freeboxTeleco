@@ -119,7 +119,7 @@ final Map<FreeboxKey, int> freeboxHidCodes = {
   // DESKTOP / SYSTEM
   // ==========================================================
 
-  FreeboxKey.menu: 0x86,
+  FreeboxKey.menu: 0x40,  //0x86,
   FreeboxKey.sleep: 0x82,
   FreeboxKey.wake: 0x83,
 
