@@ -10,24 +10,21 @@ class RudpPacket {
     this.payload = const <int>[],
   });
 
-  // ============================================================
-  // CONSTANTES
-  // ============================================================
-
   /// Taille de l'en-tête RUDP.
-  static const int headerSize = 12;
-
-  // ============================================================
-  // CHAMPS
-  // ============================================================
+  ///
+  /// L'ancien FreeboxPlayerClient utilise bien un header de 8 octets :
+  ///
+  ///  byte 0-1 : command / options
+  ///  byte 2-3 : reliable ACK
+  ///  byte 4-5 : reliable sequence
+  ///  byte 6-7 : unreliable sequence
+  static const int headerSize = 8;
 
   final int command;
   final int options;
-
   final int reliableAck;
   final int reliable;
   final int unreliable;
-
   final List<int> payload;
 
   // ============================================================
@@ -37,32 +34,32 @@ class RudpPacket {
   Uint8List encode() {
     final buffer = Uint8List(headerSize + payload.length);
 
-    final data = ByteData.sublistView(buffer);
-
     // ----------------------------------------------------------
-    // En-tête RUDP
+    // Header
     // ----------------------------------------------------------
 
     buffer[0] = command & 0xFF;
     buffer[1] = options & 0xFF;
 
-    data.setUint16(2, reliableAck & 0xFFFF, Endian.little);
+    // reliable ACK - Big Endian
+    buffer[2] = (reliableAck >> 8) & 0xFF;
+    buffer[3] = reliableAck & 0xFF;
 
-    data.setUint16(4, reliable & 0xFFFF, Endian.little);
+    // reliable sequence - Big Endian
+    buffer[4] = (reliable >> 8) & 0xFF;
+    buffer[5] = reliable & 0xFF;
 
-    data.setUint16(6, unreliable & 0xFFFF, Endian.little);
-
-    // Octets 8..11 réservés à l'en-tête.
-    buffer[8] = 0;
-    buffer[9] = 0;
-    buffer[10] = 0;
-    buffer[11] = 0;
+    // unreliable sequence - Big Endian
+    buffer[6] = (unreliable >> 8) & 0xFF;
+    buffer[7] = unreliable & 0xFF;
 
     // ----------------------------------------------------------
     // Payload
     // ----------------------------------------------------------
 
-    buffer.setRange(headerSize, buffer.length, payload);
+    if (payload.isNotEmpty) {
+      buffer.setRange(headerSize, buffer.length, payload);
+    }
 
     return buffer;
   }
@@ -76,16 +73,26 @@ class RudpPacket {
       throw const FormatException('Paquet RUDP trop court.');
     }
 
-    final view = ByteData.sublistView(data);
+    // ----------------------------------------------------------
+    // Header
+    // ----------------------------------------------------------
 
     final command = data[0];
+
     final options = data[1];
 
-    final reliableAck = view.getUint16(2, Endian.little);
+    // Big Endian
+    final reliableAck = (data[2] << 8) | data[3];
 
-    final reliable = view.getUint16(4, Endian.little);
+    // Big Endian
+    final reliable = (data[4] << 8) | data[5];
 
-    final unreliable = view.getUint16(6, Endian.little);
+    // Big Endian
+    final unreliable = (data[6] << 8) | data[7];
+
+    // ----------------------------------------------------------
+    // Payload
+    // ----------------------------------------------------------
 
     final payload = Uint8List.fromList(data.sublist(headerSize));
 
@@ -100,14 +107,16 @@ class RudpPacket {
   }
 
   // ============================================================
-  // UTILITAIRE
+  // AFFICHAGE DEBUG
   // ============================================================
 
   @override
   String toString() {
     return 'RudpPacket('
-        'command: 0x${command.toRadixString(16).padLeft(2, '0')}, '
-        'options: 0x${options.toRadixString(16).padLeft(2, '0')}, '
+        'command: 0x'
+        '${command.toRadixString(16).padLeft(2, '0')}, '
+        'options: 0x'
+        '${options.toRadixString(16).padLeft(2, '0')}, '
         'reliableAck: $reliableAck, '
         'reliable: $reliable, '
         'unreliable: $unreliable, '

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'freebox_player.dart';
+import '../core/freebox_player.dart';
 
 class FreeboxDiscovery {
   static const String _serviceName = '_hid._udp.local';
