@@ -103,12 +103,12 @@ class TvChannel {
   // HELPERS
   // ============================================================
 
-  bool get isPaid {
-    return hasAbo;
+  bool get isFree {
+    return available;
   }
 
-  bool get isFree {
-    return !hasAbo;
+  bool get isPaid {
+    return !available;
   }
 
   bool get isAvailable {

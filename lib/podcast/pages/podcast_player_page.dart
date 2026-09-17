@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'models/podcast_episode.dart';
-import 'player/podcast_player.dart';
+import '../models/podcast_episode.dart';
+import '../player/podcast_player.dart';
 
 class PodcastPlayerPage extends StatefulWidget {
   final PodcastPlayer player;

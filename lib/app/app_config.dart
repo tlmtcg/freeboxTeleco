@@ -6,4 +6,9 @@ class AppConfig {
 
   static String get podcastIndexApiSecret =>
       dotenv.env['PODCAST_INDEX_API_SECRET'] ?? '';
+
+  String remoteType = 'pop';
+
 }
+
+final appConfig = AppConfig();

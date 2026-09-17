@@ -12,6 +12,7 @@ class Podcast {
   final String? imageUrl;
   final String? feedUrl;
   final String? websiteUrl;
+  final List<String> categories;
 
   /// Date de dernière synchronisation locale.
   final DateTime? lastUpdated;
@@ -26,6 +27,7 @@ class Podcast {
     this.feedUrl,
     this.websiteUrl,
     this.lastUpdated,
+    this.categories = const [],
   });
 
   Podcast copyWith({
@@ -38,6 +40,7 @@ class Podcast {
     String? feedUrl,
     String? websiteUrl,
     DateTime? lastUpdated,
+    List<String>? categories,
   }) {
     return Podcast(
       id: id ?? this.id,
@@ -49,6 +52,7 @@ class Podcast {
       feedUrl: feedUrl ?? this.feedUrl,
       websiteUrl: websiteUrl ?? this.websiteUrl,
       lastUpdated: lastUpdated ?? this.lastUpdated,
+      categories: categories ?? this.categories,
     );
   }
 

@@ -148,9 +148,9 @@ class RemoteDelta extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     RemoteButton(
-                      icon: Icons.keyboard_arrow_up_rounded,
-                      label: 'Prog +',
-                      keyCode: FreeboxKey.channelUp,
+                      icon: Icons.volume_up_rounded,
+                      label: 'Vol +',
+                      keyCode: FreeboxKey.volumeUp,
                       client: client,
                       send: send,
                     ),
@@ -162,12 +162,13 @@ class RemoteDelta extends StatelessWidget {
                       send: send,
                     ),
                     RemoteButton(
-                      icon: Icons.volume_down_rounded,
-                      label: 'Vol -',
-                      keyCode: FreeboxKey.volumeDown,
+                      icon: Icons.keyboard_arrow_up_rounded,
+                      label: 'Prog +',
+                      keyCode: FreeboxKey.channelUp,
                       client: client,
                       send: send,
                     ),
+                    
                   ],
                 ),
 
@@ -177,9 +178,9 @@ class RemoteDelta extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     RemoteButton(
-                      icon: Icons.volume_up_rounded,
-                      label: 'Vol +',
-                      keyCode: FreeboxKey.volumeUp,
+                      icon: Icons.volume_down_rounded,
+                      label: 'Vol -',
+                      keyCode: FreeboxKey.volumeDown,
                       client: client,
                       send: send,
                     ),

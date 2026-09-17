@@ -1,10 +1,10 @@
+
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-
 class PodcastDatabase {
   static const String _databaseName = 'podcasts.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 3;
 
   static PodcastDatabase? _instance;
   static Database? _database;
@@ -57,6 +57,7 @@ class PodcastDatabase {
         image_url TEXT,
         feed_url TEXT,
         website_url TEXT,
+        categories TEXT,
         last_updated INTEGER,
 
         FOREIGN KEY (radio_id)
@@ -78,6 +79,7 @@ class PodcastDatabase {
         duration_seconds INTEGER,
         listened INTEGER NOT NULL DEFAULT 0,
         position_seconds INTEGER NOT NULL DEFAULT 0,
+        last_played_at INTEGER,
 
         UNIQUE (podcast_id, guid),
 
@@ -101,10 +103,34 @@ class PodcastDatabase {
       CREATE INDEX idx_episodes_published
       ON episodes(published_at)
     ''');
+
+    await db.execute('''
+      CREATE INDEX idx_episodes_last_played
+      ON episodes(last_played_at)
+    ''');
   }
 
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Les migrations futures seront ajoutées ici.
+  Future<void> _onUpgrade(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE podcasts ADD COLUMN categories TEXT',
+      );
+    }
+
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE episodes ADD COLUMN last_played_at INTEGER',
+      );
+
+      await db.execute('''
+        CREATE INDEX idx_episodes_last_played
+        ON episodes(last_played_at)
+      ''');
+    }
   }
 
   Future<void> close() async {

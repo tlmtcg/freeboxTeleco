@@ -29,7 +29,7 @@ class PodcastApi {
   // AUTHENTIFICATION
   // ---------------------------------------------------------------------------
 
-Map<String, String> _headers() {
+  Map<String, String> _headers() {
     final timestamp = (DateTime.now().millisecondsSinceEpoch ~/ 1000)
         .toString();
 
@@ -214,6 +214,17 @@ Map<String, String> _headers() {
   // PODCAST -> DART
   // ---------------------------------------------------------------------------
 
+  List<String> _categoriesFromJson(dynamic value) {
+    if (value is! Map) {
+      return const [];
+    }
+
+    return value.values
+        .map((e) => e.toString().trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+  
   Podcast _podcastFromJson(Map<String, dynamic> json) {
     return Podcast(
       podcastIndexId: _asInt(json['id']),
@@ -222,6 +233,7 @@ Map<String, String> _headers() {
       imageUrl: _asString(json['artwork']) ?? _asString(json['image']),
       feedUrl: _asString(json['url']),
       websiteUrl: _asString(json['link']),
+      categories: _categoriesFromJson(json['categories']),
     );
   }
 

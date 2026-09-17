@@ -1,3 +1,275 @@
+// import 'dart:async';
+
+// import 'package:flutter/foundation.dart';
+// import 'package:just_audio/just_audio.dart';
+
+// import '../models/podcast_episode.dart';
+// import '../repository/podcast_repository.dart';
+
+// class PodcastPlayer extends ChangeNotifier {
+//   final PodcastRepository repository;
+
+//   final AudioPlayer _audioPlayer = AudioPlayer();
+
+//   PodcastEpisode? _episode;
+
+//   Duration _position = Duration.zero;
+//   Duration? _duration;
+
+//   bool _savingPosition = false;
+
+//   StreamSubscription<Duration>? _positionSubscription;
+//   StreamSubscription<Duration?>? _durationSubscription;
+//   StreamSubscription<PlayerState>? _playerStateSubscription;
+
+//   PodcastPlayer({required this.repository}) {
+//     _positionSubscription = _audioPlayer.positionStream.listen((position) {
+//       _position = position;
+//       notifyListeners();
+//     });
+
+//     _durationSubscription = _audioPlayer.durationStream.listen((duration) {
+//       _duration = duration;
+//       notifyListeners();
+//     });
+
+//     _playerStateSubscription = _audioPlayer.playerStateStream.listen(
+//       _onPlayerStateChanged,
+//     );
+//   }
+
+//   // ============================================================
+//   // GETTERS
+//   // ============================================================
+
+//   PodcastEpisode? get episode => _episode;
+
+//   AudioPlayer get audioPlayer => _audioPlayer;
+
+//   Duration get position => _position;
+
+//   Duration? get duration => _duration;
+
+//   bool get isPlaying => _audioPlayer.playing;
+
+//   bool get hasEpisode => _episode != null;
+
+//   // ============================================================
+//   // LECTURE
+//   // ============================================================
+
+//   Future<void> play(PodcastEpisode episode) async {
+//     if (episode.audioUrl.isEmpty) {
+//       throw Exception('Cet épisode ne possède pas de flux audio.');
+//     }
+
+//     // ----------------------------------------------------------
+//     // Même épisode
+//     // ----------------------------------------------------------
+
+//     if (_episode?.id == episode.id) {
+//       await _audioPlayer.play();
+//       notifyListeners();
+//       return;
+//     }
+
+//     // ----------------------------------------------------------
+//     // Nouveau épisode
+//     // ----------------------------------------------------------
+
+//     await _audioPlayer.stop();
+
+//     _episode = episode;
+//     _position = Duration.zero;
+//     _duration = episode.duration;
+
+//     notifyListeners();
+
+//     // ----------------------------------------------------------
+//     // Chargement du flux
+//     // ----------------------------------------------------------
+
+//     await _audioPlayer.setUrl(episode.audioUrl);
+
+//     // ----------------------------------------------------------
+//     // Durée réelle fournie par le flux
+//     // ----------------------------------------------------------
+
+//     _duration = _audioPlayer.duration ?? episode.duration;
+
+//     // ----------------------------------------------------------
+//     // Reprise
+//     // ----------------------------------------------------------
+
+//     if (episode.position > Duration.zero) {
+//       final duration = _audioPlayer.duration;
+
+//       if (duration == null || episode.position < duration) {
+//         await _audioPlayer.seek(episode.position);
+//       }
+//     }
+
+//     // ----------------------------------------------------------
+//     // Lecture
+//     // ----------------------------------------------------------
+
+//     await _audioPlayer.play();
+
+//     notifyListeners();
+//   }
+
+//   // ============================================================
+//   // PAUSE
+//   // ============================================================
+
+//   Future<void> pause() async {
+//     await _audioPlayer.pause();
+
+//     await _savePosition();
+
+//     notifyListeners();
+//   }
+
+//   // ============================================================
+//   // PLAY / PAUSE
+//   // ============================================================
+
+//   Future<void> togglePlayPause() async {
+//     if (_episode == null) {
+//       return;
+//     }
+
+//     if (_audioPlayer.playing) {
+//       await pause();
+//     } else {
+//       await _audioPlayer.play();
+//       notifyListeners();
+//     }
+//   }
+
+//   // ============================================================
+//   // SEEK
+//   // ============================================================
+
+//   Future<void> seek(Duration position) async {
+//     await _audioPlayer.seek(position);
+
+//     _position = position;
+
+//     await _savePosition();
+
+//     notifyListeners();
+//   }
+
+//   Future<void> skipForward([
+//     Duration amount = const Duration(seconds: 30),
+//   ]) async {
+//     final target = _position + amount;
+
+//     final duration = _duration;
+
+//     final newPosition = duration != null && target > duration
+//         ? duration
+//         : target;
+
+//     await seek(newPosition);
+//   }
+
+//   Future<void> skipBackward([
+//     Duration amount = const Duration(seconds: 15),
+//   ]) async {
+//     final target = _position - amount;
+
+//     final newPosition = target.isNegative ? Duration.zero : target;
+
+//     await seek(newPosition);
+//   }
+
+//   // ============================================================
+//   // ETAT DU LECTEUR
+//   // ============================================================
+
+//   void _onPlayerStateChanged(PlayerState state) {
+//     notifyListeners();
+
+//     if (state.processingState == ProcessingState.completed) {
+//       _onCompleted();
+//     }
+//   }
+
+//   Future<void> _onCompleted() async {
+//     final currentEpisode = _episode;
+
+//     if (currentEpisode == null || currentEpisode.id == null) {
+//       return;
+//     }
+
+//     await repository.setEpisodeListened(currentEpisode.id!, true);
+
+//     await repository.saveEpisodePosition(currentEpisode.id!, Duration.zero);
+
+//     _position = Duration.zero;
+
+//     notifyListeners();
+//   }
+
+//   // ============================================================
+//   // SAUVEGARDE POSITION
+//   // ============================================================
+
+//   Future<void> _savePosition() async {
+//     if (_savingPosition) {
+//       return;
+//     }
+
+//     final currentEpisode = _episode;
+
+//     if (currentEpisode == null || currentEpisode.id == null) {
+//       return;
+//     }
+
+//     _savingPosition = true;
+
+//     try {
+//       await repository.saveEpisodePosition(currentEpisode.id!, _position);
+//     } catch (e) {
+//       debugPrint('Erreur sauvegarde position podcast : $e');
+//     } finally {
+//       _savingPosition = false;
+//     }
+//   }
+
+//   // ============================================================
+//   // ARRET
+//   // ============================================================
+
+//   Future<void> stop() async {
+//     await _audioPlayer.stop();
+
+//     await _savePosition();
+
+//     _position = Duration.zero;
+
+//     notifyListeners();
+//   }
+
+//   // ============================================================
+//   // DISPOSE
+//   // ============================================================
+
+//   @override
+//   void dispose() {
+//     _positionSubscription?.cancel();
+//     _durationSubscription?.cancel();
+//     _playerStateSubscription?.cancel();
+
+//     _audioPlayer.dispose();
+
+//     super.dispose();
+//   }
+// }
+
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -22,19 +294,44 @@ class PodcastPlayer extends ChangeNotifier {
   StreamSubscription<Duration?>? _durationSubscription;
   StreamSubscription<PlayerState>? _playerStateSubscription;
 
-  PodcastPlayer({required this.repository}) {
-    _positionSubscription = _audioPlayer.positionStream.listen((position) {
+  /*
+   * Sauvegarde périodique de la position.
+   *
+   * On évite d'écrire dans SQLite à chaque événement du
+   * positionStream.
+   */
+  Timer? _saveTimer;
+
+  PodcastPlayer({
+    required this.repository,
+  }) {
+    _positionSubscription =
+        _audioPlayer.positionStream.listen((position) {
       _position = position;
       notifyListeners();
     });
 
-    _durationSubscription = _audioPlayer.durationStream.listen((duration) {
+    _durationSubscription =
+        _audioPlayer.durationStream.listen((duration) {
       _duration = duration;
       notifyListeners();
     });
 
-    _playerStateSubscription = _audioPlayer.playerStateStream.listen(
+    _playerStateSubscription =
+        _audioPlayer.playerStateStream.listen(
       _onPlayerStateChanged,
+    );
+
+    /*
+     * Sauvegarde de la position toutes les 5 secondes.
+     */
+    _saveTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) {
+        if (_audioPlayer.playing) {
+          _savePosition();
+        }
+      },
     );
   }
 
@@ -60,7 +357,9 @@ class PodcastPlayer extends ChangeNotifier {
 
   Future<void> play(PodcastEpisode episode) async {
     if (episode.audioUrl.isEmpty) {
-      throw Exception('Cet épisode ne possède pas de flux audio.');
+      throw Exception(
+        'Cet épisode ne possède pas de flux audio.',
+      );
     }
 
     // ----------------------------------------------------------
@@ -69,17 +368,39 @@ class PodcastPlayer extends ChangeNotifier {
 
     if (_episode?.id == episode.id) {
       await _audioPlayer.play();
+
+      /*
+       * L'épisode devient à nouveau l'épisode actif.
+       */
+      if (episode.id != null) {
+        await repository.markEpisodeAsPlayed(
+          episode.id!,
+          position: _position,
+        );
+      }
+
       notifyListeners();
       return;
     }
 
     // ----------------------------------------------------------
-    // Nouveau épisode
+    // Sauvegarde de l'ancien épisode
+    // ----------------------------------------------------------
+
+    await _savePosition();
+
+    // ----------------------------------------------------------
+    // Arrêt de l'ancien flux
     // ----------------------------------------------------------
 
     await _audioPlayer.stop();
 
+    // ----------------------------------------------------------
+    // Nouveau épisode
+    // ----------------------------------------------------------
+
     _episode = episode;
+
     _position = Duration.zero;
     _duration = episode.duration;
 
@@ -89,13 +410,16 @@ class PodcastPlayer extends ChangeNotifier {
     // Chargement du flux
     // ----------------------------------------------------------
 
-    await _audioPlayer.setUrl(episode.audioUrl);
+    await _audioPlayer.setUrl(
+      episode.audioUrl,
+    );
 
     // ----------------------------------------------------------
     // Durée réelle fournie par le flux
     // ----------------------------------------------------------
 
-    _duration = _audioPlayer.duration ?? episode.duration;
+    _duration =
+        _audioPlayer.duration ?? episode.duration;
 
     // ----------------------------------------------------------
     // Reprise
@@ -104,9 +428,25 @@ class PodcastPlayer extends ChangeNotifier {
     if (episode.position > Duration.zero) {
       final duration = _audioPlayer.duration;
 
-      if (duration == null || episode.position < duration) {
-        await _audioPlayer.seek(episode.position);
+      if (duration == null ||
+          episode.position < duration) {
+        await _audioPlayer.seek(
+          episode.position,
+        );
+
+        _position = episode.position;
       }
+    }
+
+    // ----------------------------------------------------------
+    // Mémorisation comme dernier épisode écouté
+    // ----------------------------------------------------------
+
+    if (episode.id != null) {
+      await repository.markEpisodeAsPlayed(
+        episode.id!,
+        position: _position,
+      );
     }
 
     // ----------------------------------------------------------
@@ -142,7 +482,18 @@ class PodcastPlayer extends ChangeNotifier {
     if (_audioPlayer.playing) {
       await pause();
     } else {
+      /*
+       * On considère que cet épisode est à nouveau utilisé.
+       */
+      if (_episode?.id != null) {
+        await repository.markEpisodeAsPlayed(
+          _episode!.id!,
+          position: _position,
+        );
+      }
+
       await _audioPlayer.play();
+
       notifyListeners();
     }
   }
@@ -158,29 +509,46 @@ class PodcastPlayer extends ChangeNotifier {
 
     await _savePosition();
 
+    /*
+     * Le seek constitue également une activité récente
+     * sur cet épisode.
+     */
+    if (_episode?.id != null) {
+      await repository.markEpisodeAsPlayed(
+        _episode!.id!,
+        position: _position,
+      );
+    }
+
     notifyListeners();
   }
 
   Future<void> skipForward([
-    Duration amount = const Duration(seconds: 30),
+    Duration amount =
+        const Duration(seconds: 30),
   ]) async {
     final target = _position + amount;
 
     final duration = _duration;
 
-    final newPosition = duration != null && target > duration
-        ? duration
-        : target;
+    final newPosition =
+        duration != null && target > duration
+            ? duration
+            : target;
 
     await seek(newPosition);
   }
 
   Future<void> skipBackward([
-    Duration amount = const Duration(seconds: 15),
+    Duration amount =
+        const Duration(seconds: 15),
   ]) async {
     final target = _position - amount;
 
-    final newPosition = target.isNegative ? Duration.zero : target;
+    final newPosition =
+        target.isNegative
+            ? Duration.zero
+            : target;
 
     await seek(newPosition);
   }
@@ -189,10 +557,13 @@ class PodcastPlayer extends ChangeNotifier {
   // ETAT DU LECTEUR
   // ============================================================
 
-  void _onPlayerStateChanged(PlayerState state) {
+  void _onPlayerStateChanged(
+    PlayerState state,
+  ) {
     notifyListeners();
 
-    if (state.processingState == ProcessingState.completed) {
+    if (state.processingState ==
+        ProcessingState.completed) {
       _onCompleted();
     }
   }
@@ -200,13 +571,14 @@ class PodcastPlayer extends ChangeNotifier {
   Future<void> _onCompleted() async {
     final currentEpisode = _episode;
 
-    if (currentEpisode == null || currentEpisode.id == null) {
+    if (currentEpisode == null ||
+        currentEpisode.id == null) {
       return;
     }
 
-    await repository.setEpisodeListened(currentEpisode.id!, true);
-
-    await repository.saveEpisodePosition(currentEpisode.id!, Duration.zero);
+    await repository.markEpisodeFinished(
+      currentEpisode.id!,
+    );
 
     _position = Duration.zero;
 
@@ -224,16 +596,22 @@ class PodcastPlayer extends ChangeNotifier {
 
     final currentEpisode = _episode;
 
-    if (currentEpisode == null || currentEpisode.id == null) {
+    if (currentEpisode == null ||
+        currentEpisode.id == null) {
       return;
     }
 
     _savingPosition = true;
 
     try {
-      await repository.saveEpisodePosition(currentEpisode.id!, _position);
+      await repository.saveEpisodePosition(
+        currentEpisode.id!,
+        _position,
+      );
     } catch (e) {
-      debugPrint('Erreur sauvegarde position podcast : $e');
+      debugPrint(
+        'Erreur sauvegarde position podcast : $e',
+      );
     } finally {
       _savingPosition = false;
     }
@@ -244,9 +622,13 @@ class PodcastPlayer extends ChangeNotifier {
   // ============================================================
 
   Future<void> stop() async {
-    await _audioPlayer.stop();
-
+    /*
+     * Sauvegarde AVANT l'arrêt du lecteur afin de conserver
+     * la dernière position connue.
+     */
     await _savePosition();
+
+    await _audioPlayer.stop();
 
     _position = Duration.zero;
 
@@ -259,6 +641,8 @@ class PodcastPlayer extends ChangeNotifier {
 
   @override
   void dispose() {
+    _saveTimer?.cancel();
+
     _positionSubscription?.cancel();
     _durationSubscription?.cancel();
     _playerStateSubscription?.cancel();
@@ -268,4 +652,3 @@ class PodcastPlayer extends ChangeNotifier {
     super.dispose();
   }
 }
-

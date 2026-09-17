@@ -66,6 +66,17 @@ class RemotePop extends StatelessWidget {
               send: send,
             ),
           ),
+
+          const SizedBox(height: 25),
+
+          // ==================================================
+          // PAVE NUMERIQUE
+          // ==================================================
+          RemoteSection(
+            title: 'Pavé numérique',
+            child: RemoteNumericPad(client: client, send: send),
+          ),
+
         ],
       ),
     );
