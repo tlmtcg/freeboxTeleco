@@ -8,7 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:freebox_teleco/main.dart';
+import 'package:freebox_teleco/main_old.dart';
 
 void main() {
 }

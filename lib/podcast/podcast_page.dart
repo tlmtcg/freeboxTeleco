@@ -1,149 +1,396 @@
+// import 'package:flutter/material.dart';
+
+// import 'models/podcast_radio.dart';
+// import 'repository/podcast_repository.dart';
+
+// import 'podcast_radio_page.dart';
+// import 'podcast_add_radio_page.dart';
+
+// class PodcastPage extends StatefulWidget {
+//   final PodcastRepository repository;
+
+//   const PodcastPage({super.key, required this.repository});
+
+//   @override
+//   State<PodcastPage> createState() => _PodcastPageState();
+// }
+
+// class _PodcastPageState extends State<PodcastPage> {
+//   List<PodcastRadio> _radios = [];
+
+//   bool _loading = true;
+//   String? _error;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _loadRadios();
+//   }
+
+//   // ============================================================
+//   // CHARGEMENT DES RADIOS
+//   // ============================================================
+
+//   Future<void> _loadRadios() async {
+//     try {
+//       setState(() {
+//         _loading = true;
+//         _error = null;
+//       });
+
+//       var radios = await widget.repository.getRadios();
+
+//       // ----------------------------------------------------------
+//       // France Inter est notre première radio par défaut.
+//       // ----------------------------------------------------------
+
+//       final franceInterExists = radios.any(
+//         (radio) => radio.name == 'France Inter',
+//       );
+
+//       if (!franceInterExists) {
+//         final id = await widget.repository.addRadio(
+//           const PodcastRadio(name: 'France Inter', searchTerm: 'France Inter'),
+//         );
+
+//         if (id == 0) {
+//           throw Exception('Impossible de créer la radio France Inter.');
+//         }
+
+//         radios = await widget.repository.getRadios();
+//       }
+
+//       if (!mounted) {
+//         return;
+//       }
+
+//       setState(() {
+//         _radios = radios;
+//         _loading = false;
+//       });
+//     } catch (e) {
+//       if (!mounted) {
+//         return;
+//       }
+
+//       setState(() {
+//         _loading = false;
+//         _error = e.toString();
+//       });
+//     }
+//   }
+
+//   // ============================================================
+//   // AJOUT D'UNE RADIO
+//   // ============================================================
+
+// Future<void> _addRadio() async {
+//     final added = await Navigator.of(context).push<bool>(
+//       MaterialPageRoute(
+//         builder: (context) =>
+//             PodcastAddRadioPage(repository: widget.repository,
+//           podcastApi: podcastApi,
+//         ),
+//       ),
+//     );
+
+//     if (added == true) {
+//       await _loadRadios();
+
+//       if (!mounted) {
+//         return;
+//       }
+
+//       ScaffoldMessenger.of(context)
+//           .showSnackBar(const SnackBar(content: Text('Radio ajoutée')));
+//     }
+//   }
+  
+//   // ============================================================
+//   // OUVERTURE D'UNE RADIO
+//   // ============================================================
+
+//   void _openRadio(PodcastRadio radio) {
+//     Navigator.of(context).push(
+//       MaterialPageRoute(
+//         builder: (context) =>
+//             PodcastRadioPage(repository: widget.repository, radio: radio),
+//       ),
+//     );
+//   }
+
+//   // ============================================================
+//   // AFFICHAGE
+//   // ============================================================
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Podcasts'),
+//         actions: [
+//           IconButton(
+//             icon: const Icon(Icons.add),
+//             tooltip: 'Ajouter une radio',
+//             onPressed: _loading ? null : _addRadio,
+//           ),
+//         ],
+//       ),
+//       body: _buildContent(),
+//     );
+//   }
+
+//   Widget _buildContent() {
+//     if (_loading) {
+//       return const Center(child: CircularProgressIndicator());
+//     }
+
+//     if (_error != null) {
+//       return Center(
+//         child: Padding(
+//           padding: const EdgeInsets.all(24),
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               const Icon(Icons.error_outline, size: 48),
+//               const SizedBox(height: 16),
+//               Text('Erreur', style: Theme.of(context).textTheme.titleLarge),
+//               const SizedBox(height: 8),
+//               Text(_error!, textAlign: TextAlign.center),
+//               const SizedBox(height: 16),
+//               FilledButton.icon(
+//                 onPressed: _loadRadios,
+//                 icon: const Icon(Icons.refresh),
+//                 label: const Text('Réessayer'),
+//               ),
+//             ],
+//           ),
+//         ),
+//       );
+//     }
+
+//     if (_radios.isEmpty) {
+//       return Center(
+//         child: FilledButton.icon(
+//           onPressed: _addRadio,
+//           icon: const Icon(Icons.add),
+//           label: const Text('Ajouter une radio'),
+//         ),
+//       );
+//     }
+
+//     return RefreshIndicator(
+//       onRefresh: _loadRadios,
+//       child: ListView.builder(
+//         padding: const EdgeInsets.only(top: 12, bottom: 24),
+//         itemCount: _radios.length,
+//         itemBuilder: (context, index) {
+//           final radio = _radios[index];
+
+//           return _RadioTile(radio: radio, onTap: () => _openRadio(radio));
+//         },
+//       ),
+//     );
+//   }
+// }
+
+// // =================================================================
+// // RADIO TILE
+// // =================================================================
+
+// class _RadioTile extends StatelessWidget {
+//   final PodcastRadio radio;
+//   final VoidCallback onTap;
+
+//   const _RadioTile({required this.radio, required this.onTap});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Card(
+//       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+//       clipBehavior: Clip.antiAlias,
+//       child: InkWell(
+//         onTap: onTap,
+//         child: Padding(
+//           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+//           child: Row(
+//             children: [
+//               Container(
+//                 width: 54,
+//                 height: 54,
+//                 decoration: BoxDecoration(
+//                   borderRadius: BorderRadius.circular(14),
+//                   color: Theme.of(context).colorScheme.primaryContainer,
+//                 ),
+//                 child: Icon(
+//                   Icons.radio,
+//                   size: 30,
+//                   color: Theme.of(context).colorScheme.onPrimaryContainer,
+//                 ),
+//               ),
+//               const SizedBox(width: 16),
+//               Expanded(
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     Text(
+//                       radio.name,
+//                       style: Theme.of(context).textTheme.titleMedium
+//                           ?.copyWith(fontWeight: FontWeight.w600),
+//                     ),
+//                     const SizedBox(height: 4),
+//                     Text(
+//                       radio.searchTerm,
+//                       style: Theme.of(context).textTheme.bodySmall,
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//               const Icon(Icons.chevron_right),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+
 import 'package:flutter/material.dart';
 
-import 'models/podcast.dart';
+import 'api/podcast_api.dart';
 import 'models/podcast_radio.dart';
 import 'repository/podcast_repository.dart';
-import 'podcast_episodes_page.dart';
+
+import 'podcast_radio_page.dart';
+import 'podcast_add_radio_page.dart';
 
 class PodcastPage extends StatefulWidget {
   final PodcastRepository repository;
-  final PodcastRadio radio;
+  
 
-  const PodcastPage({super.key, required this.repository, required this.radio});
+  const PodcastPage({
+    super.key,
+    required this.repository,
+    
+  });
 
   @override
   State<PodcastPage> createState() => _PodcastPageState();
 }
 
 class _PodcastPageState extends State<PodcastPage> {
-  final TextEditingController _searchController = TextEditingController();
-
-  List<Podcast> _podcasts = [];
+  List<PodcastRadio> _radios = [];
 
   bool _loading = true;
-  bool _synchronizing = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadPodcasts();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+    _loadRadios();
   }
 
   // ============================================================
-  // CHARGEMENT SQLITE
+  // CHARGEMENT DES RADIOS
   // ============================================================
 
-  Future<void> _loadPodcasts() async {
-    if (widget.radio.id == null) {
-      setState(() {
-        _loading = false;
-        _error = 'La radio ne possède pas d\'ID SQLite.';
-      });
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
+  Future<void> _loadRadios() async {
     try {
-      final podcasts = await widget.repository.getPodcastsForRadio(
-        widget.radio.id!,
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+
+      var radios = await widget.repository.getRadios();
+
+      // ----------------------------------------------------------
+      // France Inter est notre première radio par défaut.
+      // ----------------------------------------------------------
+
+      final franceInterExists = radios.any(
+        (radio) => radio.name == 'France Inter',
       );
 
-      if (!mounted) return;
+      if (!franceInterExists) {
+        final id = await widget.repository.addRadio(
+          const PodcastRadio(
+            name: 'France Inter',
+            searchTerm: 'France Inter',
+          ),
+        );
 
-      setState(() {
-        _podcasts = podcasts;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
+        if (id == 0) {
+          throw Exception(
+            'Impossible de créer la radio France Inter.',
+          );
+        }
 
-      setState(() {
-        _loading = false;
-        _error = e.toString();
-      });
-    }
-  }
-
-  // ============================================================
-  // RECHERCHE LOCALE
-  // ============================================================
-
-  Future<void> _search(String value) async {
-    if (widget.radio.id == null) return;
-
-    try {
-      final podcasts = await widget.repository.searchLocalPodcasts(
-        value,
-        radioId: widget.radio.id!,
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        _podcasts = podcasts;
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _error = e.toString();
-      });
-    }
-  }
-
-  // ============================================================
-  // SYNCHRONISATION
-  // ============================================================
-
-  Future<void> _synchronize() async {
-    if (_synchronizing) return;
-
-    setState(() {
-      _synchronizing = true;
-      _error = null;
-    });
-
-    try {
-      final count = await widget.repository.synchronizeRadio(
-        widget.radio,
-        maxPodcasts: 20,
-      );
-
-      await _loadPodcasts();
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$count podcasts synchronisés')));
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _error = e.toString();
-      });
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur de synchronisation : $e')));
-    } finally {
-      if (mounted) {
-        setState(() {
-          _synchronizing = false;
-        });
+        radios = await widget.repository.getRadios();
       }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _radios = radios;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
     }
+  }
+
+  // ============================================================
+  // AJOUT D'UNE RADIO
+  // ============================================================
+
+  Future<void> _addRadio() async {
+    final added = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => PodcastAddRadioPage(
+          repository: widget.repository,
+          
+        ),
+      ),
+    );
+
+    if (added == true) {
+      await _loadRadios();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Radio ajoutée'),
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // OUVERTURE D'UNE RADIO
+  // ============================================================
+
+  void _openRadio(PodcastRadio radio) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PodcastRadioPage(
+          repository: widget.repository,
+          radio: radio,
+        ),
+      ),
+    );
   }
 
   // ============================================================
@@ -154,71 +401,24 @@ class _PodcastPageState extends State<PodcastPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.radio.name),
+        title: const Text('Podcasts'),
         actions: [
-          if (_synchronizing)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.sync),
-              tooltip: 'Synchroniser',
-              onPressed: _synchronize,
-            ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // ------------------------------------------------------
-          // RECHERCHE
-          // ------------------------------------------------------
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _search,
-              decoration: InputDecoration(
-                hintText: 'Rechercher un podcast...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _search('');
-                        },
-                      )
-                    : null,
-                filled: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Ajouter une radio',
+            onPressed: _loading ? null : _addRadio,
           ),
-
-          // ------------------------------------------------------
-          // CONTENU
-          // ------------------------------------------------------
-          Expanded(child: _buildContent()),
         ],
       ),
+      body: _buildContent(),
     );
   }
 
   Widget _buildContent() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
     }
 
     if (_error != null) {
@@ -228,14 +428,23 @@ class _PodcastPageState extends State<PodcastPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48),
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+              ),
               const SizedBox(height: 16),
-              Text('Erreur', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                'Erreur',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 8),
-              Text(_error!, textAlign: TextAlign.center),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: _loadPodcasts,
+                onPressed: _loadRadios,
                 icon: const Icon(Icons.refresh),
                 label: const Text('Réessayer'),
               ),
@@ -245,170 +454,111 @@ class _PodcastPageState extends State<PodcastPage> {
       );
     }
 
-    if (_podcasts.isEmpty) {
+    if (_radios.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.podcasts, size: 64),
-              const SizedBox(height: 16),
-              Text(
-                'Aucun podcast',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Synchronisez la radio pour récupérer '
-                'les podcasts.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: _synchronize,
-                icon: const Icon(Icons.sync),
-                label: const Text('Synchroniser'),
-              ),
-            ],
-          ),
+        child: FilledButton.icon(
+          onPressed: _addRadio,
+          icon: const Icon(Icons.add),
+          label: const Text('Ajouter une radio'),
         ),
       );
     }
 
     return RefreshIndicator(
-      onRefresh: _loadPodcasts,
+      onRefresh: _loadRadios,
       child: ListView.builder(
-        padding: const EdgeInsets.only(top: 8, bottom: 24),
-        itemCount: _podcasts.length,
+        padding: const EdgeInsets.only(
+          top: 12,
+          bottom: 24,
+        ),
+        itemCount: _radios.length,
         itemBuilder: (context, index) {
-          final podcast = _podcasts[index];
+          final radio = _radios[index];
 
-          return _PodcastTile(
-            podcast: podcast,
-            onTap: () {
-              _openPodcast(podcast);
-            },
+          return _RadioTile(
+            radio: radio,
+            onTap: () => _openRadio(radio),
           );
         },
       ),
     );
   }
-
-  // ============================================================
-  // OUVERTURE DU PODCAST
-  // ============================================================
-
-  void _openPodcast(Podcast podcast) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => PodcastEpisodesPage(
-          repository: widget.repository,
-          podcast: podcast,
-        ),
-      ),
-    );
-  }
 }
 
 // =================================================================
-// PODCAST TILE
+// RADIO TILE
 // =================================================================
 
-class _PodcastTile extends StatelessWidget {
-  final Podcast podcast;
+class _RadioTile extends StatelessWidget {
+  final PodcastRadio radio;
   final VoidCallback onTap;
 
-  const _PodcastTile({required this.podcast, required this.onTap});
+  const _RadioTile({
+    required this.radio,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      margin: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 6,
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 18,
+          ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _PodcastImage(imageUrl: podcast.imageUrl),
-              const SizedBox(width: 12),
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer,
+                ),
+                child: Icon(
+                  Icons.radio,
+                  size: 30,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onPrimaryContainer,
+                ),
+              ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      podcast.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      radio.name,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
-                    if (podcast.description != null &&
-                        podcast.description!.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        _cleanDescription(podcast.description!),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
+                    const SizedBox(height: 4),
+                    Text(
+                      radio.searchTerm,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: 4),
               const Icon(Icons.chevron_right),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  String _cleanDescription(String value) {
-    return value
-        .replaceAll(RegExp(r'<[^>]*>'), '')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-  }
-}
-
-// =================================================================
-// IMAGE
-// =================================================================
-
-class _PodcastImage extends StatelessWidget {
-  final String? imageUrl;
-
-  const _PodcastImage({required this.imageUrl});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: SizedBox(
-        width: 90,
-        height: 90,
-        child: imageUrl != null && imageUrl!.isNotEmpty
-            ? Image.network(
-                imageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _placeholder(context);
-                },
-              )
-            : _placeholder(context),
-      ),
-    );
-  }
-
-  Widget _placeholder(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: const Icon(Icons.podcasts, size: 40),
     );
   }
 }

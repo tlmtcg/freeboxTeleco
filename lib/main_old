@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:freebox_teleco/podcast/podcast_page.dart';
-import 'podcast/api/podcast_api.dart';
 
 import 'podcast/api/podcast_api.dart';
 
@@ -63,8 +62,15 @@ Future<void> main() async {
     return;
   }
 
+  // debugPrint('========================================');
+  // debugPrint('       CONFIGURATION PODCAST INDEX');
+  // debugPrint('========================================');
+  // debugPrint('API key présente    : true');
+  // debugPrint('API secret présent  : true');
+  // debugPrint('========================================');
+
   // ============================================================
-  // SERVICES PODCAST
+  // SERVICES
   // ============================================================
 
   final podcastApi = PodcastApi(apiKey: apiKey, apiSecret: apiSecret);
@@ -76,17 +82,223 @@ Future<void> main() async {
     database: podcastDatabase,
   );
 
+  // Cette variable doit rester accessible après le try
+  // afin de pouvoir lancer PodcastTestApp.
+  PodcastRadio? franceInter;
+
+  // ============================================================
+  // TEST
+  // ============================================================
+
+  try {
+    // debugPrint('');
+    // debugPrint('========================================');
+    // debugPrint('       TEST PODCAST REPOSITORY');
+    // debugPrint('========================================');
+
+    // ----------------------------------------------------------
+    // 1. Création / récupération de la radio
+    // ----------------------------------------------------------
+
+    // debugPrint('');
+    // debugPrint('--- RADIO ---');
+
+    const radio = PodcastRadio(
+      name: 'France Inter',
+      searchTerm: 'France Inter',
+    );
+
+    final radios = await repository.getRadios();
+
+    for (final item in radios) {
+      if (item.name == radio.name) {
+        franceInter = item;
+        break;
+      }
+    }
+
+    if (franceInter == null) {
+      final radioId = await repository.addRadio(radio);
+
+      if (radioId == 0) {
+        throw Exception('Impossible de créer la radio France Inter.');
+      }
+
+      franceInter = radio.copyWith(id: radioId);
+
+      // debugPrint('Radio créée : ${franceInter!.name}');
+
+      // debugPrint('ID SQLite   : ${franceInter!.id}');
+    } else {
+      // debugPrint('Radio existante : ${franceInter!.name}');
+
+      // debugPrint('ID SQLite       : ${franceInter!.id}');
+    }
+
+    // ----------------------------------------------------------
+    // Vérification de sécurité
+    // ----------------------------------------------------------
+
+    if (franceInter == null) {
+      throw Exception('Impossible de récupérer la radio France Inter.');
+    }
+
+    if (franceInter!.id == null) {
+      throw Exception('La radio France Inter ne possède pas d\'ID SQLite.');
+    }
+
+    // ----------------------------------------------------------
+    // 2. Synchronisation Podcast Index → SQLite
+    // ----------------------------------------------------------
+
+    // debugPrint('');
+    // debugPrint('--- SYNCHRONISATION ---');
+
+    final synchronizedCount = await repository.synchronizeRadio(
+      franceInter!,
+      maxPodcasts: 10,
+    );
+
+    // debugPrint('Podcasts synchronisés : $synchronizedCount');
+
+    // ----------------------------------------------------------
+    // 3. Lecture depuis SQLite
+    // ----------------------------------------------------------
+
+    // debugPrint('');
+    // debugPrint('--- LECTURE SQLITE ---');
+
+    final podcasts = await repository.getPodcastsForRadio(franceInter!.id!);
+
+    // debugPrint('Nombre de podcasts en SQLite : ${podcasts.length}');
+
+    // debugPrint('');
+
+    for (final podcast in podcasts) {
+      debugPrint(
+        '${podcast.id} | '
+        '${podcast.podcastIndexId} | '
+        '${podcast.title}',
+      );
+    }
+
+    // ----------------------------------------------------------
+    // 4. Test des épisodes
+    // ----------------------------------------------------------
+
+    if (podcasts.isNotEmpty) {
+      const testPodcastIndexId = 1387907;
+
+      Podcast? podcast;
+
+      for (final item in podcasts) {
+        if (item.podcastIndexId == testPodcastIndexId) {
+          podcast = item;
+          break;
+        }
+      }
+
+      if (podcast == null) {
+        throw Exception(
+          'Podcast Index ID '
+          '$testPodcastIndexId '
+          'introuvable dans SQLite.',
+        );
+      }
+
+      if (podcast.id == null) {
+        throw Exception('Le podcast ne possède pas d\'ID SQLite.');
+      }
+
+      if (podcast.podcastIndexId == null) {
+        throw Exception('Le podcast ne possède pas de Podcast Index ID.');
+      }
+
+      // debugPrint('');
+      // debugPrint('--- TEST EPISODES ---');
+
+      // debugPrint('Podcast : ${podcast.title}');
+
+      // debugPrint('SQLite ID : ${podcast.id}');
+
+      // debugPrint('Podcast Index ID : ${podcast.podcastIndexId}');
+
+      // --------------------------------------------------------
+      // 4.1 Podcast Index → épisodes
+      // --------------------------------------------------------
+
+      await repository.synchronizeEpisodes(podcast, maxEpisodes: 10);
+
+      // --------------------------------------------------------
+      // 4.2 Lecture des épisodes depuis SQLite
+      // --------------------------------------------------------
+
+      final episodes = await repository.getEpisodes(podcast.id!, limit: 10);
+
+      // debugPrint(
+      //   'Nombre d\'épisodes en SQLite : '
+      //   '${episodes.length}',
+      // );
+
+      // debugPrint('');
+
+      for (final episode in episodes) {
+        // debugPrint('${episode.id} | ${episode.title}');
+      }
+    } else {
+      // debugPrint('');
+      // debugPrint('Aucun podcast disponible pour tester les épisodes.');
+    }
+
+    // ==========================================================
+    // FIN DU TEST
+    // ==========================================================
+
+    // debugPrint('');
+    // debugPrint('========================================');
+    // debugPrint('             TEST TERMINE');
+    // debugPrint('========================================');
+  } catch (e, stackTrace) {
+    // ==========================================================
+    // ERREUR
+    // ==========================================================
+
+    debugPrint('');
+    debugPrint('========================================');
+    debugPrint('          ERREUR PODCAST');
+    debugPrint('========================================');
+
+    debugPrint('$e');
+
+    debugPrint('');
+    debugPrint('$stackTrace');
+
+    debugPrint('========================================');
+  }
+
   // ============================================================
   // APPLICATION
   // ============================================================
+  runApp(FreeboxRemoteApp());
 
-  runApp(FreeboxRemoteApp(repository: repository));
+  // if (franceInter != null) {
+  //   runApp(PodcastTestApp(repository: repository, radio: franceInter!));
+  // } else {
+  //   debugPrint(
+  //     'Impossible de lancer PodcastPage : '
+  //     'France Inter indisponible.',
+  //   );
+  // }
 }
 
-class FreeboxRemoteApp extends StatelessWidget {
-  final PodcastRepository repository;
+class AppConfig {
+  String remoteType = "delta"; // "delta" | "pop" | "revolution"
+}
 
-  const FreeboxRemoteApp({super.key, required this.repository});
+final appConfig = AppConfig();
+
+class FreeboxRemoteApp extends StatelessWidget {
+  const FreeboxRemoteApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -103,15 +315,13 @@ class FreeboxRemoteApp extends StatelessWidget {
         fontFamily: 'sans',
         useMaterial3: true,
       ),
-      home: RemoteHomePage(repository: repository),
+      home: const RemoteHomePage(),
     );
   }
 }
 
 class RemoteHomePage extends StatefulWidget {
-  final PodcastRepository repository;
-
-  const RemoteHomePage({super.key, required this.repository});
+  const RemoteHomePage({super.key});
 
   @override
   State<RemoteHomePage> createState() => _RemoteHomePageState();
@@ -717,7 +927,7 @@ class _RemoteHomePageState extends State<RemoteHomePage> {
   // ============================================================
 
   Widget _buildAppsPage() {
-    return PodcastPage(repository: widget.repository);
+    return const Center(child: Text('Vide'));
   }
 
   // ============================================================
@@ -786,13 +996,7 @@ class PodcastTestApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFF5B8CFF),
         useMaterial3: true,
       ),
-      home: PodcastPage(repository: repository),
+      home: PodcastPage(repository: repository, radio: radio),
     );
   }
 }
-
-class AppConfig {
-  String remoteType = "delta"; // "delta" | "pop" | "revolution"
-}
-
-final appConfig = AppConfig();
