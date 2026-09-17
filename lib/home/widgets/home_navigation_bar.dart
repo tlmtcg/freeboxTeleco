@@ -27,9 +27,9 @@ class HomeNavigationBar extends StatelessWidget {
         ),
 
         NavigationDestination(
-          icon: Icon(Icons.apps_outlined),
-          selectedIcon: Icon(Icons.apps_rounded),
-          label: 'Apps',
+          icon: Icon(Icons.podcasts),
+          selectedIcon: Icon(Icons.podcasts_rounded),
+          label: 'Podcasts',
         ),
 
         NavigationDestination(

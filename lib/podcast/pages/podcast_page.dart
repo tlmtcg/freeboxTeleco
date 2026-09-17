@@ -723,18 +723,18 @@
 
 import 'package:flutter/material.dart';
 
-import 'api/podcast_api.dart';
-import 'controllers/podcast_controller.dart';
-import 'models/podcast_episode.dart';
-import 'models/podcast_radio.dart';
-import 'player/podcast_player.dart';
+import '../api/podcast_api.dart';
+import '../controllers/podcast_controller.dart';
+import '../models/podcast_episode.dart';
+import '../models/podcast_radio.dart';
+import '../player/podcast_player.dart';
 import 'podcast_add_radio_page.dart';
-import 'pages/podcast_player_page.dart';
-import 'pages/podcast_radio_page.dart';
-import 'repository/podcast_repository.dart';
+import 'podcast_player_page.dart';
+import 'podcast_radio_page.dart';
+import '../repository/podcast_repository.dart';
 
-import 'widgets/podcast_radio_tile.dart';
-import 'widgets/podcast_resume_card.dart';
+import '../widgets/podcast_radio_tile.dart';
+import '../widgets/podcast_resume_card.dart';
 
 class PodcastPage extends StatefulWidget {
   final PodcastRepository repository;

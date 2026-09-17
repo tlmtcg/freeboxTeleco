@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:freebox_teleco/tv/models/channel_filter.dart';
 
 import '../models/tv_channel.dart';
 
-enum ChannelFilter { all, free, paid }
 
 class ChannelFilterBar extends StatelessWidget {
   final List<TvChannel> channels;
@@ -47,19 +47,19 @@ int get freeCount {
         child: Row(
           children: [
             _buildFilterChip(
-              label: 'Toutes',
-              icon: Icons.tv,
-              filter: ChannelFilter.all,
-              count: allCount,
+              label: 'Gratuites',
+              icon: Icons.check_circle_outline,
+              filter: ChannelFilter.free,
+              count: freeCount,
             ),
 
             const SizedBox(width: 8),
 
             _buildFilterChip(
-              label: 'Gratuites',
-              icon: Icons.check_circle_outline,
-              filter: ChannelFilter.free,
-              count: freeCount,
+              label: 'Toutes',
+              icon: Icons.tv,
+              filter: ChannelFilter.all,
+              count: allCount,
             ),
 
             const SizedBox(width: 8),

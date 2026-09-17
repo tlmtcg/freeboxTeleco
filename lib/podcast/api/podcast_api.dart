@@ -37,12 +37,12 @@ class PodcastApi {
 
     final authorization = sha1.convert(utf8.encode(authString)).toString();
 
-    debugPrint('--- Podcast Index AUTH ---');
-    debugPrint('API key length    : ${apiKey.length}');
-    debugPrint('API secret length : ${apiSecret.length}');
-    debugPrint('Timestamp         : $timestamp');
-    debugPrint('Authorization len : ${authorization.length}');
-    debugPrint('User-Agent        : $userAgent');
+    // debugPrint('--- Podcast Index AUTH ---');
+    // debugPrint('API key length    : ${apiKey.length}');
+    // debugPrint('API secret length : ${apiSecret.length}');
+    // debugPrint('Timestamp         : $timestamp');
+    // debugPrint('Authorization len : ${authorization.length}');
+    // debugPrint('User-Agent        : $userAgent');
 
     return {
       'User-Agent': userAgent,
@@ -65,10 +65,10 @@ class PodcastApi {
 
     final response = await _client.get(uri, headers: _headers());
 
-    debugPrint('--- Podcast Index RESPONSE ---');
-    debugPrint('HTTP : ${response.statusCode}');
-    debugPrint('BODY : ${response.body}');
-    debugPrint('------------------------------');
+    // debugPrint('--- Podcast Index RESPONSE ---');
+    // debugPrint('HTTP : ${response.statusCode}');
+    // debugPrint('BODY : ${response.body}');
+    // debugPrint('------------------------------');
 
     if (response.statusCode != 200) {
       throw PodcastApiException(

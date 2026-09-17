@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import '../connection/freebox_connection_controller.dart';
 import '../freebox_os.dart';
 import '../podcast/api/podcast_api.dart';
-import '../podcast/podcast_page.dart';
+import '../podcast/pages/podcast_page.dart';
 import '../podcast/repository/podcast_repository.dart';
 import '../remote/remote_delta.dart';
 import '../remote/remote_pop.dart';
 import '../remote/remote_revolution.dart';
-import '../tv/channels_page.dart';
+import '../tv/pages/channels_page.dart';
 import '../app/app_config.dart';
 
 import 'widgets/connection_placeholder.dart';

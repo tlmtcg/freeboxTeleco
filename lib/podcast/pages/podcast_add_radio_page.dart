@@ -538,13 +538,13 @@
 
 import 'package:flutter/material.dart';
 
-import 'api/podcast_api.dart';
-import 'controllers/podcast_add_radio_controller.dart';
-import 'models/podcast.dart';
-import 'repository/podcast_repository.dart';
-import 'widgets/podcast_add_radio_search.dart';
-import 'widgets/podcast_error_message.dart';
-import 'widgets/podcast_search_result_tile.dart';
+import '../api/podcast_api.dart';
+import '../controllers/podcast_add_radio_controller.dart';
+import '../models/podcast.dart';
+import '../repository/podcast_repository.dart';
+import '../widgets/podcast_add_radio_search.dart';
+import '../widgets/podcast_error_message.dart';
+import '../widgets/podcast_search_result_tile.dart';
 
 class PodcastAddRadioPage extends StatefulWidget {
   final PodcastRepository repository;
