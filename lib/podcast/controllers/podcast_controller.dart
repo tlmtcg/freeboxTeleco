@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/podcast_episode.dart';
 import '../models/podcast_radio.dart';
 import '../repository/podcast_repository.dart';
@@ -11,8 +13,28 @@ class PodcastController {
     return repository.getRadios();
   }
 
-  Future<PodcastEpisode?> getEpisodeToResume() {
-    return repository.getEpisodeToResume();
+  Future<PodcastEpisode?> getEpisodeToResume() async {
+    // debugPrint('========================================');
+    // debugPrint('🔄 RECHERCHE ÉPISODE À REPRENDRE');
+    // debugPrint('========================================');
+
+    final episode = await repository.getEpisodeToResume();
+
+    // if (episode == null) {
+    //   debugPrint('❌ Aucun épisode à reprendre');
+    // } else {
+    //   debugPrint('✅ Épisode trouvé');
+    //   debugPrint('   ID        : ${episode.id}');
+    //   debugPrint('   Titre     : ${episode.title}');
+    //   debugPrint('   Position  : ${episode.position}');
+    //   debugPrint('   Position s: ${episode.position.inSeconds}');
+    //   debugPrint('   Durée     : ${episode.duration}');
+    //   debugPrint('   Audio URL : ${episode.audioUrl}');
+    // }
+
+    // debugPrint('========================================');
+
+    return episode;
   }
 
   Future<PodcastHomeData> load() async {
@@ -44,4 +66,3 @@ class PodcastHomeData {
 
   const PodcastHomeData({required this.radios, required this.episodeToResume});
 }
-

@@ -269,8 +269,8 @@ class _ChannelSearchPageState extends State<ChannelSearchPage> {
         : null;
 
     if (picturePath == null) {
-      debugPrint('IMAGE EPG : aucune image pour ${channel.displayName}');
-      debugPrint('EPG : ${channel.epg}');
+      // debugPrint('IMAGE EPG : aucune image pour ${channel.displayName}');
+      // debugPrint('EPG : ${channel.epg}');
 
       return _buildImagePlaceholder();
     }
@@ -281,13 +281,13 @@ class _ChannelSearchPageState extends State<ChannelSearchPage> {
     // DEBUG IMAGE
     // ============================================================
 
-    debugPrint('========================================');
-    debugPrint('IMAGE EPG');
-    debugPrint('CHAINE   : ${channel.displayName}');
-    debugPrint('BASE URL : ${widget.baseUrl}');
-    debugPrint('PATH     : $picturePath');
-    debugPrint('URL      : $imageUrl');
-    debugPrint('========================================');
+    // debugPrint('========================================');
+    // debugPrint('IMAGE EPG');
+    // debugPrint('CHAINE   : ${channel.displayName}');
+    // debugPrint('BASE URL : ${widget.baseUrl}');
+    // debugPrint('PATH     : $picturePath');
+    // debugPrint('URL      : $imageUrl');
+    // debugPrint('========================================');
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
@@ -297,11 +297,11 @@ class _ChannelSearchPageState extends State<ChannelSearchPage> {
         height: 70,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          debugPrint('========================================');
-          debugPrint('ERREUR IMAGE EPG');
-          debugPrint('URL   : $imageUrl');
-          debugPrint('ERROR : $error');
-          debugPrint('========================================');
+          // debugPrint('========================================');
+          // debugPrint('ERREUR IMAGE EPG');
+          // debugPrint('URL   : $imageUrl');
+          // debugPrint('ERROR : $error');
+          // debugPrint('========================================');
 
           return _buildImagePlaceholder();
         },

@@ -49,6 +49,38 @@ class _PodcastEpisodesPageState extends State<PodcastEpisodesPage> {
   // CHARGEMENT
   // ============================================================
 
+  // Future<void> _loadEpisodes() async {
+  //   setState(() {
+  //     _loading = true;
+  //     _error = null;
+  //   });
+
+  //   try {
+  //     final episodes = await _controller.loadEpisodes();
+
+  //     if (!mounted) {
+  //       return;
+  //     }
+
+  //     setState(() {
+  //       _episodes = episodes;
+  //       _loading = false;
+  //     });
+  //   } catch (e, stackTrace) {
+  //     debugPrint('Erreur chargement épisodes : $e');
+  //     debugPrint('$stackTrace');
+
+  //     if (!mounted) {
+  //       return;
+  //     }
+
+  //     setState(() {
+  //       _loading = false;
+  //       _error = e.toString();
+  //     });
+  //   }
+  // }
+
   Future<void> _loadEpisodes() async {
     setState(() {
       _loading = true;
@@ -56,14 +88,30 @@ class _PodcastEpisodesPageState extends State<PodcastEpisodesPage> {
     });
 
     try {
-      final episodes = await _controller.loadEpisodes();
+      final fetchedEpisodes = await _controller.loadEpisodes();
 
       if (!mounted) {
         return;
       }
 
+      // 1. CORRECTION : On crée une copie modifiable de la liste.
+      // Si la liste retournée par le controller est immutable, un simple .sort() ferait crasher l'application.
+      final List<PodcastEpisode> sortedEpisodes = List.from(fetchedEpisodes);
+
+      // 2. CORRECTION : Tri pour un livre audio ("Le mystère de la chambre jaune")
+      // Option A : Tri chronologique par date de publication (Recommandé pour Podcast Index)
+      // On compare les dates. Si 'pubDate' ou 'date' est un DateTime, utilisez compareTo.
+      // sortedEpisodes.sort((a, b) => a.date.compareTo(b.date));
+
+      // Option B : Tri intelligent par titre (Si vos fichiers ont été publiés le même jour)
+      // On utilise une expression régulière pour extraire les numéros et éviter que "Chapitre 10" arrive avant "Chapitre 2".
+      sortedEpisodes.sort((a, b) {
+        return _extractNumber(a.title).compareTo(_extractNumber(b.title));
+      });
+
       setState(() {
-        _episodes = episodes;
+        // 3. On assigne la liste triée à notre état
+        _episodes = sortedEpisodes;
         _loading = false;
       });
     } catch (e, stackTrace) {
@@ -79,6 +127,16 @@ class _PodcastEpisodesPageState extends State<PodcastEpisodesPage> {
         _error = e.toString();
       });
     }
+  }
+
+  // Fonction utilitaire à ajouter dans votre classe pour extraire le premier nombre d'un titre
+  int _extractNumber(String title) {
+    final RegExp regex = RegExp(r'\d+');
+    final match = regex.firstMatch(title);
+    if (match != null) {
+      return int.parse(match.group(0)!);
+    }
+    return 0; // Retourne 0 ou un grand nombre si aucun chiffre n'est trouvé
   }
 
   // ============================================================

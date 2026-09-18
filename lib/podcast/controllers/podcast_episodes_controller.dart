@@ -22,23 +22,23 @@ class PodcastEpisodesController {
     // Aucun épisode local :
     // synchronisation automatique.
     if (episodes.isEmpty) {
-      debugPrint('');
-      debugPrint('========================================');
-      debugPrint('     SYNCHRONISATION AUTOMATIQUE');
-      debugPrint('========================================');
-      debugPrint('Podcast : ${podcast.title}');
-      debugPrint(
-        'Podcast Index ID : '
-        '${podcast.podcastIndexId}',
-      );
+      // debugPrint('');
+      // debugPrint('========================================');
+      // debugPrint('     SYNCHRONISATION AUTOMATIQUE');
+      // debugPrint('========================================');
+      // debugPrint('Podcast : ${podcast.title}');
+      // debugPrint(
+      //   'Podcast Index ID : '
+      //   '${podcast.podcastIndexId}',
+      // );
 
       await repository.synchronizeEpisodes(podcast, maxEpisodes: 50);
 
       episodes = await repository.getEpisodes(podcastId, limit: 50);
 
-      debugPrint('Épisodes récupérés : ${episodes.length}');
+      // debugPrint('Épisodes récupérés : ${episodes.length}');
 
-      debugPrint('========================================');
+      // debugPrint('========================================');
     }
 
     return episodes;
